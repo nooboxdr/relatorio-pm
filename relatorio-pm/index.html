@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Relatório de Patrulhamento PM</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    /* --- Estilos Gerais --- */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f0f2f5;
+      font-size: 10px;
+    }
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: 10px auto;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1 );
+    }
+    .page { 
+      background: white; 
+      padding: 15px;
+      box-sizing: border-box;
+      overflow: hidden; /* Ajuda na renderização do PDF */
+    }
+    .header { width: 100%; margin-bottom: 15px; }
+    .header-image { width: 100%; height: auto; }
+
+    /* --- Tabelas --- */
+    .info-table-compact, .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    .info-table-compact { margin-bottom: 15px; }
+    .data-table { table-layout: fixed; }
+    
+    .info-table-compact td {
+      border: 1px solid #000; 
+      padding: 3px 5px; 
+      text-align: left;
+      vertical-align: middle;
+    }
+    .data-table th, .data-table td {
+      border: 1px solid #000;
+      padding: 3px;
+      text-align: center;
+      vertical-align: middle;
+      word-wrap: break-word;
+    }
+    .info-table-compact input, .data-table input[type="text"] {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 10px;
+      background-color: transparent;
+      padding: 2px 0;
+    }
+    .table-wrapper { overflow-x: auto; margin-bottom: 10px; }
+    
+    /* --- Outros Elementos --- */
+    .section-title { font-size: 12px; font-weight: bold; margin: 15px 0 5px; }
+    .sintese { width: 100%; box-sizing: border-box; font-size: 10px; padding: 5px; border: 1px solid #000; margin: 10px 0; height: 200px; }
+    
+    /* ALTERAÇÃO 2: Rodapé agora é um bloco normal no final da página 2 */
+    .footer-content {
+      text-align: center;
+      font-size: 10px;
+      margin-top: 30px; /* Espaço acima do rodapé */
+    }
+    .signature {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .signature div { width: 48%; text-align: center; }
+    .footer-phrase {
+      font-size: 9px;
+      font-style: italic;
+      padding-top: 8px;
+      border-top: 1px solid #000;
+    }
+
+    /* --- Checkboxes --- */
+    .criminal-check { display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+    .criminal-check label { display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 10px; }
+    .criminal-check input[type="checkbox"] { width: 12px; height: 12px; margin: 0; }
+
+    /* --- Botões --- */
+    .btn-container { text-align: center; padding: 15px; background-color: #f0f0f0; }
+    .btn { padding: 10px 15px; margin: 5px; font-size: 12px; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-pdf { background-color: #007bff; }
+    .btn-save { background-color: #28a745; }
+    .btn-load { background-color: #ffc107; color: black; }
+    .btn-clear { background-color: #dc3545; }
+
+    /* ALTERAÇÃO 1: MEDIA QUERY PARA DISPOSITIVOS MÓVEIS */
+    @media (max-width: 600px) {
+      body { font-size: 9px; }
+      .page { padding: 10px; }
+      .section-title { font-size: 11px; }
+      .data-table th, .data-table td { padding: 2px; }
+      .criminal-check {
+        flex-direction: column; /* Empilha os checkboxes */
+        gap: 2px;
+      }
+      .criminal-check label { font-size: 9px; }
+      .criminal-check input[type="checkbox"] { width: 10px; height: 10px; }
+      .btn { padding: 8px 12px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- PÁGINA 1 -->
+    <div id="pagina1" class="page">
+      <div class="header">
+        <img src="cabecalho.png" alt="Cabeçalho do Relatório" class="header-image">
+      </div>
+      <table class="info-table-compact">
+        <tr><td>CÓDIGO DA OPM: <input type="text" id="opm"></td><td>VIATURA: <input type="text" id="viatura"></td></tr>
+        <tr><td>DATA: <input type="text" id="data"></td><td>TURNO: <input type="text" id="turno"></td></tr>
+        <tr><td>ENC./RE: <input type="text" id="enc_re"></td><td>MOT./RE: <input type="text" id="mot_re"></td></tr>
+        <tr><td>OBS: <input type="text" id="obs1"></td><td>OBS: <input type="text" id="obs2"></td></tr>
+      </table>
+      <div class="section-title">ABORDAGENS REALIZADAS A PESSOAS</div>
+      <div class="table-wrapper"><table class="data-table" id="tabela-pessoas"></table></div>
+      <div class="section-title">ABORDAGENS A VEÍCULOS</div>
+      <div class="table-wrapper"><table class="data-table" id="tabela-veiculos"></table></div>
+    </div>
+
+    <!-- PÁGINA 2 -->
+    <div id="pagina2" class="page">
+      <div class="section-title">OCORRÊNCIAS LEI "MARIA DA PENHA"</div>
+      <div class="table-wrapper"><table class="data-table" id="tabela-penha"></table></div>
+      <div class="section-title">ESTATÍSTICA DA EQUIPE</div>
+      <div class="table-wrapper"><table class="data-table" id="tabela-estatistica"></table></div>
+      <div class="section-title">SINTESE DO SERVIÇO</div>
+      <textarea class="sintese" id="sintese"></textarea>
+      
+      <!-- Rodapé como um bloco normal no final do conteúdo -->
+      <div class="footer-content">
+        <div class="signature">
+          <div>ENC. DE EQUIPE:  
+___________________________</div>
+          <div>VISTO DO CMT CIA:  
+_________________________</div>
+        </div>
+        <div class="footer-phrase">
+          "Nós, Policiais Militares, estamos compromissados com a Defesa da Vida, da Integridade Física e da Dignidade da Pessoa Humana"
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-container">
+    <button class="btn btn-pdf" onclick="gerarPDF()">Gerar PDF</button>
+    <button class="btn btn-save" onclick="salvarRascunho()">Salvar Rascunho</button>
+    <button class="btn btn-load" onclick="carregarRascunho()">Carregar Rascunho</button>
+    <button class="btn btn-clear" onclick="limparForm()">Limpar Tudo</button>
+  </div>
+  
+  <script>
+    // As funções JavaScript permanecem as mesmas da versão anterior, pois a lógica está correta.
+    function popularTabelas() {
+      const tabelaPessoas = document.getElementById('tabela-pessoas');
+      let htmlPessoas = '<thead><tr><th style="width: 25%;">NOME</th><th style="width: 10%;">RG/CIC</th><th style="width: 25%;">LOCAL</th><th style="width: 5%;">QTR</th><th style="width: 10%;">Criminal</th><th style="width: 5%;">Art.</th></tr></thead><tbody>';
+      for (let i = 0; i < 12; i++) { htmlPessoas += `<tr><td><input type="text" id="p_nome_${i}"></td><td><input type="text" id="p_rg_${i}"></td><td><input type="text" id="p_local_${i}"></td><td><input type="text" id="p_qtr_${i}"></td><td><div class="criminal-check"><label><input type="checkbox" id="p_crim_s_${i}"> S</label>/<label><input type="checkbox" id="p_crim_n_${i}"> N</label></div></td><td><input type="text" id="p_art_${i}"></td></tr>`; }
+      tabelaPessoas.innerHTML = htmlPessoas + '</tbody>';
+      
+      const tabelaVeiculos = document.getElementById('tabela-veiculos');
+      let htmlVeiculos = '<thead><tr><th style="width: 20%;">MARCA/MOD</th><th style="width: 10%;">PLACAS</th><th style="width: 25%;">CONDUTOR</th><th style="width: 10%;">PGU</th><th style="width: 15%;">LOCAL</th><th style="width: 5%;">QTR</th><th style="width: 10%;">Criminal</th><th style="width: 5%;">Art.</th></tr></thead><tbody>';
+      for (let i = 0; i < 8; i++) { htmlVeiculos += `<tr><td><input type="text" id="v_marca_${i}"></td><td><input type="text" id="v_placa_${i}"></td><td><input type="text" id="v_condutor_${i}"></td><td><input type="text" id="v_pgu_${i}"></td><td><input type="text" id="v_local_${i}"></td><td><input type="text" id="v_qtr_${i}"></td><td><div class="criminal-check"><label><input type="checkbox" id="v_crim_s_${i}"> S</label>/<label><input type="checkbox" id="v_crim_n_${i}"> N</label></div></td><td><input type="text" id="v_art_${i}"></td></tr>`; }
+      tabelaVeiculos.innerHTML = htmlVeiculos + '</tbody>';
+      
+      document.getElementById('tabela-penha').innerHTML = `<thead><tr><th>NOME</th><th>TEL</th><th>BOPM</th><th>BOPC</th><th>NATUREZA</th><th>VISITA PM</th></tr></thead><tbody><tr><td><input type="text" id="mp_nome"></td><td><input type="text" id="mp_tel"></td><td><input type="text" id="mp_bopm"></td><td><input type="text" id="mp_bopc"></td><td><input type="text" id="mp_natureza"></td><td><div class="criminal-check"><label><input type="checkbox" id="mp_visita_s"> SIM</label>/<label><input type="checkbox" id="mp_visita_n"> NÃO</label></div></td></tr></tbody>`;
+      document.getElementById('tabela-estatistica').innerHTML = `<thead><tr><th>PESSOAS</th><th>VEÍCULOS</th><th>MOTOS</th><th>AIT/AI</th><th>CR</th><th>ARMAS</th><th>FLAGRANTES</th><th>OUTROS</th></tr></thead><tbody><tr><td><input type="text" id="est_pessoas"></td><td><input type="text" id="est_veiculos"></td><td><input type="text" id="est_motos"></td><td><input type="text" id="est_ait"></td><td><input type="text" id="est_cr"></td><td><input type="text" id="est_armas"></td><td><input type="text" id="est_flagrantes"></td><td><input type="text" id="est_outros"></td></tr><tr><td colspan="8">Nº SUBSETORES / CPP: <input type="text" id="est_cpp" style="width: 80%;"></td></tr></tbody>`;
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        popularTabelas();
+    });
+
+    async function gerarPDF() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      
+      const paginas = [document.getElementById('pagina1'), document.getElementById('pagina2')];
+      
+      for (let i = 0; i < paginas.length; i++) {
+        const pagina = paginas[i];
+        const canvas = await html2canvas(pagina, {
+            scale: 2, // Escala 2 é suficiente e gera PDFs mais leves
+            useCORS: true,
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.9); // Qualidade 0.9 para balancear
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+        if (i > 0) { pdf.addPage(); }
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+      }
+      pdf.save("Relatorio_de_Patrulhamento.pdf");
+    }
+
+    function limparForm() {
+      document.querySelectorAll('input[type="text"], textarea').forEach(input => { input.value = ""; });
+      document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+      localStorage.removeItem('relatorioRascunho');
+      alert('Formulário e rascunho limpos!');
+    }
+
+    function salvarRascunho() {
+      const dados = {};
+      document.querySelectorAll('input[type="text"], textarea, input[type="checkbox"]').forEach(el => {
+        if (el.id) {
+          dados[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+        }
+      });
+      localStorage.setItem('relatorioRascunho', JSON.stringify(dados));
+      alert('Rascunho salvo com sucesso!');
+    }
+
+    function carregarRascunho() {
+      const dadosSalvos = localStorage.getItem('relatorioRascunho');
+      if (dadosSalvos) {
+        const dados = JSON.parse(dadosSalvos);
+        for (const id in dados) {
+          const elemento = document.getElementById(id);
+          if (elemento) {
+            if (elemento.type === 'checkbox') {
+              elemento.checked = dados[id];
+            } else {
+              elemento.value = dados[id];
+            }
+          }
+        }
+        alert('Rascunho carregado!');
+      } else {
+        alert('Nenhum rascunho encontrado.');
+      }
+    }
+  </script>
+
+</body>
+</html>
+
